@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>DubGen AI - Video Translator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #0b0d14;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .glass-card {
+      background: rgba(22, 27, 40, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .gradient-btn {
+      background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 50%, #ec4899 100%);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen pb-24">
+
+  <!-- Top App Bar -->
+  <header class="sticky top-0 z-30 glass-card px-4 py-3.5 flex items-center justify-between">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 rounded-xl gradient-btn flex items-center justify-center shadow-lg shadow-purple-500/30">
+        <i class="fa-solid fa-wand-magic-sparkles text-white text-sm"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base leading-tight">DubGen <span class="gradient-text">Studio</span></h1>
+        <p class="text-[11px] text-gray-400">AI Video Dubbing & Lip-Sync</p>
+      </div>
+    </div>
+    <button onclick="toggleModal('apiModal')" class="px-3 py-1.5 rounded-lg bg-gray-800/80 border border-gray-700 text-xs font-medium text-gray-300 flex items-center gap-1.5 hover:bg-gray-700">
+      <i class="fa-solid fa-key text-purple-400"></i>
+      <span id="modeBadge">Demo Mode</span>
+    </button>
+  </header>
+
+  <!-- Main Content Tabs -->
+  <main class="max-w-md mx-auto px-4 pt-4 space-y-5">
+
+    <!-- TAB 1: TRANSLATE STUDIO -->
+    <div id="tab-studio" class="space-y-4">
+
+      <!-- 1. Video Source Card -->
+      <div class="glass-card rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-purple-400">1. Source Video</span>
+          <span class="text-[11px] text-gray-400">MP4, MOV or Link</span>
+        </div>
+
+        <!-- Upload Box / Video Preview -->
+        <div id="uploadContainer" onclick="document.getElementById('videoFileInput').click()" class="border-2 border-dashed border-gray-700 hover:border-purple-500 rounded-xl p-6 text-center cursor-pointer transition">
+          <input type="file" id="videoFileInput" accept="video/*" class="hidden" onchange="handleVideoUpload(event)" />
+          <div class="w-12 h-12 rounded-full bg-purple-500/10 text-purple-400 flex items-center justify-center mx-auto mb-2">
+            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+          </div>
+          <p class="text-sm font-medium text-gray-200">Tap to Upload Video</p>
+          <p class="text-xs text-gray-500 mt-0.5">Supports portrait (9:16) & landscape (16:9)</p>
+        </div>
+
+        <!-- Video Preview Player (Hidden until loaded) -->
+        <div id="previewContainer" class="hidden space-y-2">
+          <div class="relative rounded-xl overflow-hidden bg-black aspect-video border border-gray-800">
+            <video id="sourceVideoPlayer" class="w-full h-full object-contain" controls></video>
+            <button onclick="resetVideo()" class="absolute top-2 right-2 bg-black/70 text-white w-7 h-7 rounded-full text-xs flex items-center justify-center">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <p id="fileNameDisplay" class="text-xs text-gray-400 truncate"></p>
+        </div>
+
+        <!-- Direct URL Input (Required for HeyGen API or YouTube/TikTok) -->
+        <div class="relative">
+          <i class="fa-solid fa-link absolute left-3.5 top-3 text-gray-500 text-xs"></i>
+          <input type="url" id="videoUrlInput" placeholder="Or paste video / YouTube URL..." class="w-full bg-gray-900/90 border border-gray-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-gray-200 focus:outline-none focus:border-purple-500" />
+        </div>
+      </div>
+
+      <!-- 2. Target Language & Voice Settings -->
+      <div class="glass-card rounded-2xl p-4 space-y-4">
+        <span class="text-xs font-semibold uppercase tracking-wider text-purple-400">2. Dubbing & Lip-Sync Settings</span>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Target Language</label>
+            <select id="targetLang" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+              <option value="Tamil">🇮🇳 Tamil (தமிழ்)</option>
+              <option value="Malayalam">🇮🇳 Malayalam (മലയാളം)</option>
+              <option value="English">🇺🇸 English (US)</option>
+              <option value="Hindi">🇮🇳 Hindi (हिन्दी)</option>
+              <option value="Spanish">🇪🇸 Spanish (Español)</option>
+              <option value="French">🇫🇷 French (Français)</option>
+              <option value="Arabic">🇸🇦 Arabic (العربية)</option>
+              <option value="Japanese">🇯🇵 Japanese (日本語)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-400 mb-1">Engine Mode</label>
+            <select id="engineMode" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500">
+              <option value="precision">Precision (High Lip-Sync)</option>
+              <option value="speed">Speed (Fast Draft)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- AI Switches -->
+        <div class="space-y-2.5 pt-1">
+          <label class="flex items-center justify-between p-2.5 rounded-xl bg-gray-900/60 border border-gray-800/80 cursor-pointer">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-face-smile-wink text-purple-400 text-sm"></i>
+              <div>
+                <p class="text-xs font-medium text-gray-200">AI Lip-Sync Redraw</p>
+                <p class="text-[10px] text-gray-400">Align mouth movements to translated speech</p>
+              </div>
+            </div>
+            <input type="checkbox" id="lipSyncToggle" checked class="accent-purple-600 w-4 h-4 rounded" />
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 rounded-xl bg-gray-900/60 border border-gray-800/80 cursor-pointer">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-microphone-lines text-pink-400 text-sm"></i>
+              <div>
+                <p class="text-xs font-medium text-gray-200">Clone Original Speaker Voice</p>
+                <p class="text-[10px] text-gray-400">Preserve original tone, pitch & emotion</p>
+              </div>
+            </div>
+            <input type="checkbox" id="voiceCloneToggle" checked class="accent-purple-600 w-4 h-4 rounded" />
+          </label>
+
+          <label class="flex items-center justify-between p-2.5 rounded-xl bg-gray-900/60 border border-gray-800/80 cursor-pointer">
+            <div class="flex items-center gap-2.5">
+              <i class="fa-solid fa-sliders text-blue-400 text-sm"></i>
+              <div>
+                <p class="text-xs font-medium text-gray-200">Dynamic Duration Pacing</p>
+                <p class="text-[10px] text-gray-400">Auto-adjust video speed to fit natural syllable speed</p>
+              </div>
+            </div>
+            <input type="checkbox" id="dynamicDurationToggle" checked class="accent-purple-600 w-4 h-4 rounded" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. Script & Proofread Editor (Collapsible) -->
+      <div class="glass-card rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-purple-400">3. Script & Voice Preview (Optional)</span>
+          <button onclick="autoGenerateSampleScript()" class="text-[11px] text-purple-400 underline">Load Sample Script</button>
+        </div>
+        <textarea id="scriptInput" rows="2" placeholder="Enter custom dialogue to test AI voice synthesis or leave blank to auto-transcribe video..." class="w-full bg-gray-900/90 border border-gray-800 rounded-xl p-3 text-xs text-gray-200 focus:outline-none focus:border-purple-500"></textarea>
+      </div>
+
+      <!-- Generate Button -->
+      <button id="generateBtn" onclick="startDubbingProcess()" class="w-full gradient-btn py-3.5 rounded-2xl font-semibold text-sm text-white shadow-lg shadow-purple-600/30 flex items-center justify-center gap-2 active:scale-[0.99] transition">
+        <i class="fa-solid fa-language"></i>
+        <span>Translate & Dub Video</span>
+      </button>
+
+      <!-- Processing Status Card (Hidden by default) -->
+      <div id="statusCard" class="hidden glass-card rounded-2xl p-4 space-y-3 border border-purple-500/40">
+        <div class="flex items-center justify-between">
+          <span id="statusTitle" class="text-xs font-semibold text-purple-300 flex items-center gap-2">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Processing AI Dubbing...
+          </span>
+          <span id="statusPercent" class="text-xs font-bold text-white">0%</span>
+        </div>
+        <div class="w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+          <div id="progressBar" class="gradient-btn h-full w-0 transition-all duration-300"></div>
+        </div>
+        <p id="statusStepText" class="text-[11px] text-gray-400">Initializing neural audio separation...</p>
+      </div>
+
+      <!-- Output Result Card (Hidden until complete) -->
+      <div id="outputCard" class="hidden glass-card rounded-2xl p-4 space-y-3 border border-emerald-500/40">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check"></i> Dubbed Output Ready
+          </span>
+          <span id="outputLangBadge" class="px-2 py-0.5 text-[10px] rounded-full bg-emerald-500/20 text-emerald-300 font-medium">Tamil</span>
+        </div>
+
+        <div class="relative rounded-xl overflow-hidden bg-black aspect-video border border-gray-800">
+          <video id="outputVideoPlayer" class="w-full h-full object-contain" controls></video>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button onclick="playDubbedPreview()" class="py-2.5 px-3 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-300 text-xs font-medium flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-volume-high"></i> Play AI Dub Audio
+          </button>
+          <button onclick="downloadResult()" class="py-2.5 px-3 rounded-xl bg-emerald-600 text-white text-xs font-medium flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-download"></i> Save MP4
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: PROJECTS HISTORY -->
+    <div id="tab-projects" class="hidden space-y-3">
+      <h2 class="text-sm font-bold text-gray-200">Recent Dubbing Projects</h2>
+      <div id="projectsList" class="space-y-2.5">
+        <div class="glass-card p-3.5 rounded-xl flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-400">
+              <i class="fa-solid fa-film"></i>
+            </div>
+            <div>
+              <p class="text-xs font-semibold text-white">Product_Demo_Reel.mp4</p>
+              <p class="text-[10px] text-gray-400">English → Tamil • Precision Lip-Sync</p>
+            </div>
+          </div>
+          <span class="text-[10px] px-2 py-1 rounded bg-emerald-500/20 text-emerald-400">Completed</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- API Key Configuration Modal -->
+  <div id="apiModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-card max-w-sm w-full rounded-2xl p-5 space-y-4 border border-gray-700">
+      <div class="flex items-center justify-between">
+        <h3 class="text-sm font-bold text-white">HeyGen API Configuration</h3>
+        <button onclick="toggleModal('apiModal')" class="text-gray-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <p class="text-xs text-gray-400 leading-relaxed">
+        Enter your official <b>HeyGen API Key</b> to process cloud lip-sync translations via <code>api.heygen.com/v2/video_translate</code>, or leave blank to use built-in Local Simulation Mode.
+      </p>
+      <div>
+        <label class="block text-xs text-gray-300 mb-1">HeyGen X-Api-Key</label>
+        <input type="password" id="heygenApiKey" placeholder="Paste your HeyGen API key here..." class="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500" />
+      </div>
+      <div class="flex justify-end gap-2">
+        <button onclick="saveApiKey()" class="w-full gradient-btn py-2.5 rounded-xl text-xs font-semibold text-white">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation Bar -->
+  <nav class="fixed bottom-0 inset-x-0 z-30 glass-card border-t border-gray-800/80 px-6 py-2.5 flex justify-around items-center max-w-md mx-auto">
+    <button onclick="switchTab('studio')" id="nav-studio" class="flex flex-col items-center gap-1 text-purple-400">
+      <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+      <span class="text-[10px] font-medium">Dub Studio</span>
+    </button>
+    <button onclick="switchTab('projects')" id="nav-projects" class="flex flex-col items-center gap-1 text-gray-500">
+      <i class="fa-solid fa-folder-open text-base"></i>
+      <span class="text-[10px] font-medium">My Projects</span>
+    </button>
+    <button onclick="toggleModal('apiModal')" class="flex flex-col items-center gap-1 text-gray-500">
+      <i class="fa-solid fa-gear text-base"></i>
+      <span class="text-[10px] font-medium">API Setup</span>
+    </button>
+  </nav>
+
+  <script>
+    let uploadedVideoBlobUrl = null;
+    let savedApiKey = localStorage.getItem('heygen_api_key') || '';
+
+    const sampleTranslations = {
+      Tamil: "வணக்கம்! இந்த வீடியோ செயற்கை நுண்ணறிவு மூலம் தமிழ் மொழியில் மொழிபெயர்க்கப்பட்டு உதட்டு அசைவுகள் துல்லியமாக மாற்றப்பட்டுள்ளது.",
+      Malayalam: "നമസ്കാരം! ഈ വീഡിയോ ആർട്ടിഫിഷ്യൽ ഇന്റലിജൻസ് ഉപയോഗിച്ച് മലയാളത്തിലേക്ക് ഡബ്ബ് ചെയ്തതാണ്.",
+      Hindi: "नमस्ते! यह वीडियो आर्टिफिशियल इंटेलिजेंस की मदद से हिंदी में डब और लिप-सिंक किया गया है।",
+      Spanish: "¡Hola! Este video ha sido traducido y sincronizado con inteligencia artificial manteniendo la voz original.",
+      English: "Hello! This video has been automatically translated and lip-synced using our neural dubbing studio.",
+      French: "Bonjour ! Cette vidéo a été doublée et synchronisée grâce à notre intelligence artificielle.",
+      Arabic: "مرحباً! تمت دبلجة هذا الفيديو ومزامنة الشفاه باستخدام الذكاء الاصطناعي.",
+      Japanese: "こんにちは！この動画はAIによって翻訳され、リップシンクされています。"
+    };
+
+    if (savedApiKey) {
+      document.getElementById('heygenApiKey').value = savedApiKey;
+      document.getElementById('modeBadge').innerText = 'Live API';
+    }
+
+    function toggleModal(id) {
+      const el = document.getElementById(id);
+      el.classList.toggle('hidden');
+    }
+
+    function saveApiKey() {
+      const key = document.getElementById('heygenApiKey').value.trim();
+      savedApiKey = key;
+      localStorage.setItem('heygen_api_key', key);
+      document.getElementById('modeBadge').innerText = key ? 'Live API' : 'Demo Mode';
+      toggleModal('apiModal');
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-studio').classList.toggle('hidden', tab !== 'studio');
+      document.getElementById('tab-projects').classList.toggle('hidden', tab !== 'projects');
+      document.getElementById('nav-studio').className = tab === 'studio' ? 'flex flex-col items-center gap-1 text-purple-400' : 'flex flex-col items-center gap-1 text-gray-500';
+      document.getElementById('nav-projects').className = tab === 'projects' ? 'flex flex-col items-center gap-1 text-purple-400' : 'flex flex-col items-center gap-1 text-gray-500';
+    }
+
+    function handleVideoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      uploadedVideoBlobUrl = URL.createObjectURL(file);
+      const player = document.getElementById('sourceVideoPlayer');
+      player.src = uploadedVideoBlobUrl;
+      document.getElementById('fileNameDisplay').innerText = `Selected: ${file.name} (${(file.size / 1048576).toFixed(1)} MB)`;
+      document.getElementById('uploadContainer').classList.add('hidden');
+      document.getElementById('previewContainer').classList.remove('hidden');
+    }
+
+    function resetVideo() {
+      uploadedVideoBlobUrl = null;
+      document.getElementById('videoFileInput').value = '';
+      document.getElementById('uploadContainer').classList.remove('hidden');
+      document.getElementById('previewContainer').classList.add('hidden');
+    }
+
+    function autoGenerateSampleScript() {
+      const lang = document.getElementById('targetLang').value;
+      document.getElementById('scriptInput').value = sampleTranslations[lang] || sampleTranslations['English'];
+    }
+
+    async function startDubbingProcess() {
+      const videoUrl = document.getElementById('videoUrlInput').value.trim();
+      const targetLang = document.getElementById('targetLang').value;
+      const mode = document.getElementById('engineMode').value;
+      const lipSync = document.getElementById('lipSyncToggle').checked;
+
+      if (!uploadedVideoBlobUrl && !videoUrl) {
+        alert("Please upload a video file or paste a video link first!");
+        return;
+      }
+
+      document.getElementById('outputCard').classList.add('hidden');
+      const statusCard = document.getElementById('statusCard');
+      const progressBar = document.getElementById('progressBar');
+      const statusPercent = document.getElementById('statusPercent');
+      const statusStepText = document.getElementById('statusStepText');
+      statusCard.classList.remove('hidden');
+
+      // If Live HeyGen API Key + URL is provided, call real HeyGen v2 endpoint
+      if (savedApiKey && videoUrl) {
+        try {
+          statusStepText.innerText = "Submitting video to HeyGen Video Translate API...";
+          progressBar.style.width = "25%";
+          statusPercent.innerText = "25%";
+
+          const response = await fetch("https://api.heygen.com/v2/video_translate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": savedApiKey
+            },
+            body: JSON.stringify({
+              video_url: videoUrl,
+              title: "DubGen_Mobile_Translation",
+              output_language: targetLang,
+              translate_audio_only: !lipSync,
+              mode: mode
+            })
+          });
+
+          const data = await response.json();
+          if (data.error) throw new Error(data.error.message || "API Error");
+          statusStepText.innerText = `Job Queued! Translation ID: ${data.data?.video_translate_id || 'Active'}`;
+          progressBar.style.width = "100%";
+          statusPercent.innerText = "100%";
+          return;
+        } catch (err) {
+          alert("HeyGen API Notice: " + err.message + " — Switching to Demo Simulation.");
+        }
+      }
+
+      // Built-in Demo Simulation Pipeline
+      const steps = [
+        { pct: 20, msg: "Extracting original speaker vocal print & background track..." },
+        { pct: 45, msg: `Translating transcript into ${targetLang} with cultural nuances...` },
+        { pct: 75, msg: "Synthesizing cloned AI voice audio..." },
+        { pct: 92, msg: lipSync ? "Running neural lip-sync facial frame alignment..." : "Merging translated audio track..." },
+        { pct: 100, msg: "Finalizing dubbed MP4 video..." }
+      ];
+
+      for (const step of steps) {
+        await new Promise(r => setTimeout(r, 850));
+        progressBar.style.width = step.pct + "%";
+        statusPercent.innerText = step.pct + "%";
+        statusStepText.innerText = step.msg;
+      }
+
+      statusCard.classList.add('hidden');
+      document.getElementById('outputCard').classList.remove('hidden');
+      document.getElementById('outputLangBadge').innerText = targetLang;
+
+      const outPlayer = document.getElementById('outputVideoPlayer');
+      if (uploadedVideoBlobUrl) {
+        outPlayer.src = uploadedVideoBlobUrl;
+      }
+    }
+
+    function playDubbedPreview() {
+      const targetLang = document.getElementById('targetLang').value;
+      const customText = document.getElementById('scriptInput').value.trim();
+      const textToSpeak = customText || sampleTranslations[targetLang] || sampleTranslations['English'];
+
+      const langCodes = {
+        Tamil: 'ta-IN', Malayalam: 'ml-IN', Hindi: 'hi-IN',
+        English: 'en-US', Spanish: 'es-ES', French: 'fr-FR',
+        Arabic: 'ar-SA', Japanese: 'ja-JP'
+      };
+
+      const outPlayer = document.getElementById('outputVideoPlayer');
+      if (outPlayer.src) {
+        outPlayer.muted = true;
+        outPlayer.currentTime = 0;
+        outPlayer.play();
+      }
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = langCodes[targetLang] || 'en-US';
+        utterance.onend = () => { if (outPlayer.src) outPlayer.pause(); };
+        window.speechSynthesis.speak(utterance);
+      } else {
+        alert("Dubbed Audio Output: " + textToSpeak);
+      }
+    }
+
+    function downloadResult() {
+      if (!uploadedVideoBlobUrl) {
+        alert("In Demo Mode with a URL, please upload a local MP4 file to test video export.");
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = uploadedVideoBlobUrl;
+      a.download = `DubGen_${document.getElementById('targetLang').value}_Output.mp4`;
+      a.click();
+    }
+  </script>
+</body>
+</html>
